@@ -579,9 +579,10 @@ void initCuda(int N, const glm::vec4 &camera_position)
 	cudaMalloc((void**)&dev_campos, sizeof(glm::vec4));
     checkCUDAErrorWithLine("Kernel failed!");
 
-	resetAttachedToIndex ();
-	checkCUDAErrorWithLine("Kernel failed!");
+//	resetAttachedToIndex ();
+//	checkCUDAErrorWithLine("Kernel failed!");
 	cudaMemcpy (dev_campos, &camera_position, sizeof (camera_position), cudaMemcpyHostToDevice);
+    checkCUDAErrorWithLine("Kernel failed!");
     generateRandomPosArray<<<fullBlocksPerGrid, blockSize>>>(1, numObjects, dev_pos, scene_scale, planetMass);
     checkCUDAErrorWithLine("Kernel failed!");
     generateCircularVelArray<<<fullBlocksPerGrid, blockSize>>>(2, numObjects, dev_vel, dev_pos);
@@ -613,14 +614,16 @@ void cudaUpdateVBO(float * vbodptr, int width, int height)
 {
     dim3 fullBlocksPerGrid((int)ceil(float(numObjects)/float(blockSize)));
     sendToVBO<<<fullBlocksPerGrid, blockSize>>>(numObjects, dev_pos, vbodptr, width, height, scene_scale);
-    cudaThreadSynchronize();
+    checkCUDAErrorWithLine("Kernel failed!");
+	cudaThreadSynchronize();
 }
 
 void cudaUpdatePBO(float4 * pbodptr, int width, int height)
 {
     dim3 fullBlocksPerGrid((int)ceil(float(width*height)/float(blockSize)));
     sendToPBO<<<fullBlocksPerGrid, blockSize, blockSize*sizeof(glm::vec4)>>>(numObjects, dev_pos, pbodptr, width, height, scene_scale);
-    cudaThreadSynchronize();
+    checkCUDAErrorWithLine("Kernel failed!");
+	cudaThreadSynchronize();
 }
 
 void setDevicePrefetch (bool prefetchEnabled)
@@ -632,6 +635,7 @@ glm::vec4	getCurrentCameraPosition ()
 {
 	glm::vec4	camera_position;
 	cudaMemcpy (&camera_position, dev_campos, sizeof (camera_position), cudaMemcpyDeviceToHost);
+	checkCUDAErrorWithLine("Kernel failed!");
 	return camera_position/scene_scale;
 }
 
@@ -654,6 +658,7 @@ void		setCurrentCameraPosition (const glm::vec4 &camera_position)
 {
 	glm::vec4	cPos = camera_position * scene_scale;
 	cudaMemcpy (dev_campos, &cPos, sizeof (glm::vec4), cudaMemcpyHostToDevice);
+	checkCUDAErrorWithLine("Kernel failed!");
 }
 
 void	moveCameraToNextFlock (glm::vec3 &cameraPos)
@@ -669,4 +674,5 @@ void	setCameraUpdate (bool shouldCameraUpdate)
 void	resetAttachedToIndex ()
 {
 	attachedToIndexReset<<<1,1>>> ();
+		cudaThreadSynchronize();
 }
